@@ -148,7 +148,7 @@ download_package() {
     
     # 下载服务文件
     log_info "下载service文件..."
-    SERVICE_URL="https://raw.githubusercontent.com/zhugeyufeng/easytier-auto-deploy/main/resource/easytier.service"
+    SERVICE_URL="https://github.com/zhugeyufeng/easytier-auto-deploy/blob/main/easytier.service"
     
     if command -v curl &> /dev/null; then
         HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${SERVICE_URL}")
