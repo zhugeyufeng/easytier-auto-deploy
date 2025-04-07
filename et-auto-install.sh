@@ -104,9 +104,9 @@ detect_arch_and_version() {
         exit 1
     fi
     
-    # 检查API响应是否包含404错误
-    if grep -q "404: Not Found" "$API_RESPONSE_FILE" || [ ! -s "$API_RESPONSE_FILE" ]; then
-        log_error "获取版本信息失败，API返回404错误或空响应"
+    # 检查API响应是否有效
+    if [ ! -s "$API_RESPONSE_FILE" ] || grep -q "Not Found" "$API_RESPONSE_FILE" 2>/dev/null; then
+        log_error "获取版本信息失败，API返回错误或空响应"
         rm -f "$API_RESPONSE_FILE"
         exit 1
     fi
