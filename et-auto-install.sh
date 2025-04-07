@@ -34,6 +34,43 @@ check_root() {
     log_success "已确认为root用户，继续执行..."
 }
 
+# 检查并安装必要的依赖工具
+check_dependencies() {
+    log_info "检查必要的依赖工具..."
+    
+    # 检查并安装curl
+    if ! command -v curl &> /dev/null; then
+        log_warning "未找到curl，正在安装..."
+        if command -v apt-get &> /dev/null; then
+            apt-get update -qq && apt-get install -y curl
+        elif command -v yum &> /dev/null; then
+            yum install -y curl
+        else
+            log_error "无法安装curl，请手动安装后重试"
+            exit 1
+        fi
+        log_success "curl安装完成"
+    else
+        log_success "curl已安装"
+    fi
+    
+    # 检查并安装wget
+    if ! command -v wget &> /dev/null; then
+        log_warning "未找到wget，正在安装..."
+        if command -v apt-get &> /dev/null; then
+            apt-get update -qq && apt-get install -y wget
+        elif command -v yum &> /dev/null; then
+            yum install -y wget
+        else
+            log_error "无法安装wget，请手动安装后重试"
+            exit 1
+        fi
+        log_success "wget安装完成"
+    else
+        log_success "wget已安装"
+    fi
+}
+
 # 检测系统架构并获取最新版本
 detect_arch_and_version() {
     # 检测架构
@@ -84,20 +121,55 @@ download_package() {
     # 下载对应架构的包
     log_info "正在下载 $PACKAGE_NAME..."
     
-    if curl -L "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -o "${PACKAGE_NAME}"; then
-        log_success "下载包成功"
+    if command -v curl &> /dev/null; then
+        if curl -L "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -o "${PACKAGE_NAME}"; then
+            log_success "下载包成功"
+        else
+            log_error "curl下载包失败，尝试使用wget..."
+            if command -v wget &> /dev/null; then
+                if wget "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"; then
+                    log_success "下载包成功"
+                else
+                    log_error "下载包失败，请检查网络连接和下载链接"
+                    exit 1
+                fi
+            else
+                log_error "下载包失败，请检查网络连接和下载链接"
+                exit 1
+            fi
+        fi
+    elif command -v wget &> /dev/null; then
+        if wget "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"; then
+            log_success "下载包成功"
+        else
+            log_error "下载包失败，请检查网络连接和下载链接"
+            exit 1
+        fi
     else
-        log_error "下载包失败，请检查网络连接和下载链接"
+        log_error "系统中既没有curl也没有wget，无法下载"
         exit 1
     fi
     
     # 下载服务文件
     log_info "下载service文件..."
     SERVICE_URL="https://raw.githubusercontent.com/zhugeyufeng/easytier-auto-deploy/main/resource/easytier.service"
-    if curl -L "${SERVICE_URL}" -o "easytier.service"; then
-        log_success "下载服务文件成功"
+    
+    if command -v curl &> /dev/null; then
+        if curl -L "${SERVICE_URL}" -o "easytier.service"; then
+            log_success "下载服务文件成功"
+        else
+            log_error "下载服务文件失败，创建默认服务文件"
+            create_default_service_file
+        fi
+    elif command -v wget &> /dev/null; then
+        if wget "${SERVICE_URL}" -O "easytier.service"; then
+            log_success "下载服务文件成功"
+        else
+            log_error "下载服务文件失败，创建默认服务文件"
+            create_default_service_file
+        fi
     else
-        log_error "下载服务文件失败，创建默认服务文件"
+        log_error "无法下载服务文件，创建默认服务文件"
         create_default_service_file
     fi
 }
@@ -193,6 +265,7 @@ main() {
     echo "========== EasyTier 自动安装脚本 =========="
     
     check_root
+    check_dependencies
     detect_arch_and_version
     download_package
     extract_package
