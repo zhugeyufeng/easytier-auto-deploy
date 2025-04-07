@@ -116,26 +116,17 @@ download_package() {
     # 下载对应架构的包
     log_info "正在下载 $PACKAGE_NAME..."
     
-    # 检查URL是否可访问
+    # 直接尝试下载，不进行可访问性检查
     if command -v curl &> /dev/null; then
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}")
-        if [ "$HTTP_CODE" = "404" ]; then
-            log_error "下载URL返回404错误，文件可能不存在: ${GITHUB_RELEASE_URL}/${PACKAGE_NAME}"
-            exit 1
-        fi
-        
         if curl -L "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -o "${PACKAGE_NAME}"; then
             log_success "下载包成功"
         else
             log_error "curl下载包失败，尝试使用wget..."
             if command -v wget &> /dev/null; then
-                # 修改wget检查方式，完全抑制输出并仅检查退出状态
-                wget -q --spider "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" > /dev/null 2>&1
-                if [ $? -eq 0 ]; then
-                    wget -q "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"
+                if wget -q "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"; then
                     log_success "下载包成功"
                 else
-                    log_error "下载包失败，URL不可访问"
+                    log_error "下载包失败，请检查网络连接和下载链接"
                     exit 1
                 fi
             else
@@ -144,17 +135,10 @@ download_package() {
             fi
         fi
     elif command -v wget &> /dev/null; then
-        # 同样修改这部分代码以确保不会有HTML输出
-        wget -q --spider "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" > /dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            if wget -q "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"; then
-                log_success "下载包成功"
-            else
-                log_error "下载包失败，请检查网络连接"
-                exit 1
-            fi
+        if wget -q "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"; then
+            log_success "下载包成功"
         else
-            log_error "下载URL不可访问: ${GITHUB_RELEASE_URL}/${PACKAGE_NAME}"
+            log_error "下载包失败，请检查网络连接"
             exit 1
         fi
     else
