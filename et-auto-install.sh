@@ -129,8 +129,10 @@ download_package() {
         else
             log_error "curl下载包失败，尝试使用wget..."
             if command -v wget &> /dev/null; then
-                if wget --spider "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" 2>/dev/null; then
-                    wget "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"
+                # 修改wget检查方式，完全抑制输出并仅检查退出状态
+                wget -q --spider "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" > /dev/null 2>&1
+                if [ $? -eq 0 ]; then
+                    wget -q "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"
                     log_success "下载包成功"
                 else
                     log_error "下载包失败，URL不可访问"
@@ -142,8 +144,10 @@ download_package() {
             fi
         fi
     elif command -v wget &> /dev/null; then
-        if wget --spider "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" 2>/dev/null; then
-            if wget "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"; then
+        # 同样修改这部分代码以确保不会有HTML输出
+        wget -q --spider "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            if wget -q "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"; then
                 log_success "下载包成功"
             else
                 log_error "下载包失败，请检查网络连接"
