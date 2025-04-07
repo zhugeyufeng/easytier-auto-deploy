@@ -88,41 +88,11 @@ detect_arch_and_version() {
         exit 1
     fi
     
-    # 获取最新版本号
-    log_info "获取最新版本信息..."
+    # 使用固定版本v2.2.4而不是获取最新版本
+    log_info "使用指定版本: v2.2.4..."
+    LATEST_VERSION="v2.2.4"
     
-    # 使用临时文件存储API响应
-    API_RESPONSE_FILE=$(mktemp)
-    
-    if command -v curl &> /dev/null; then
-        curl -s -o "$API_RESPONSE_FILE" https://api.github.com/repos/EasyTier/EasyTier/releases/latest
-    elif command -v wget &> /dev/null; then
-        wget -q -O "$API_RESPONSE_FILE" https://api.github.com/repos/EasyTier/EasyTier/releases/latest
-    else
-        log_error "无法获取版本信息，curl和wget均未安装"
-        rm -f "$API_RESPONSE_FILE"
-        exit 1
-    fi
-    
-    # 检查API响应是否有效
-    if [ ! -s "$API_RESPONSE_FILE" ] || grep -q "Not Found" "$API_RESPONSE_FILE" 2>/dev/null; then
-        log_error "获取版本信息失败，API返回错误或空响应"
-        rm -f "$API_RESPONSE_FILE"
-        exit 1
-    fi
-    
-    # 从API响应中提取版本号
-    LATEST_VERSION=$(grep -oP '"tag_name": "\K(.*)(?=")' "$API_RESPONSE_FILE")
-    
-    # 清理临时文件
-    rm -f "$API_RESPONSE_FILE"
-    
-    if [ -z "$LATEST_VERSION" ];then
-        log_error "无法获取最新版本信息"
-        exit 1
-    fi
-    
-    log_success "最新版本: $LATEST_VERSION"
+    log_success "版本: $LATEST_VERSION"
     
     # 去掉版本号前面的v (如果有)
     VERSION=${LATEST_VERSION#v}
