@@ -93,7 +93,7 @@ download_package() {
     
     # 下载服务文件
     log_info "下载service文件..."
-    SERVICE_URL="https://raw.githubusercontent.com/EasyTier/EasyTier/main/resource/easytier.service"
+    SERVICE_URL="https://raw.githubusercontent.com/zhugeyufeng/easytier-auto-deploy/main/resource/easytier.service"
     if curl -L "${SERVICE_URL}" -o "easytier.service"; then
         log_success "下载服务文件成功"
     else
