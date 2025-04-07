@@ -148,31 +148,21 @@ download_package() {
     
     # 下载服务文件
     log_info "下载service文件..."
-    SERVICE_URL="https://github.com/zhugeyufeng/easytier-auto-deploy/blob/main/easytier.service"
+    SERVICE_URL="https://raw.githubusercontent.com/zhugeyufeng/easytier-auto-deploy/main/easytier.service"
     
+    # 直接尝试下载服务文件，不进行可访问性检查
     if command -v curl &> /dev/null; then
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${SERVICE_URL}")
-        if [ "$HTTP_CODE" = "404" ]; then
-            log_warning "服务文件URL返回404错误，创建默认服务文件"
-            create_default_service_file
+        if curl -L "${SERVICE_URL}" -o "easytier.service"; then
+            log_success "下载服务文件成功"
         else
-            if curl -L "${SERVICE_URL}" -o "easytier.service"; then
-                log_success "下载服务文件成功"
-            else
-                log_error "下载服务文件失败，创建默认服务文件"
-                create_default_service_file
-            fi
+            log_error "下载服务文件失败，创建默认服务文件"
+            create_default_service_file
         fi
     elif command -v wget &> /dev/null; then
-        if wget --spider "${SERVICE_URL}" 2>/dev/null; then
-            if wget "${SERVICE_URL}" -O "easytier.service"; then
-                log_success "下载服务文件成功"
-            else
-                log_error "下载服务文件失败，创建默认服务文件"
-                create_default_service_file
-            fi
+        if wget -q "${SERVICE_URL}" -O "easytier.service"; then
+            log_success "下载服务文件成功"
         else
-            log_warning "服务文件URL不可访问，创建默认服务文件"
+            log_error "下载服务文件失败，创建默认服务文件"
             create_default_service_file
         fi
     else
