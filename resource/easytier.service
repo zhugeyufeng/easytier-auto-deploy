@@ -1,0 +1,11 @@
+[Unit]
+Description=EasyTier Service
+After=network.target syslog.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/root/easytier/easytier-core -w udp://103.155.202.2:10001/knet
+
+[Install]
+WantedBy=multi-user.target

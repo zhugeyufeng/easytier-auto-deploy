@@ -1,0 +1,12 @@
+[Unit]
+Description=EasyTier Service
+After=network.target syslog.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/root/easytier/easytier-web-embed -d myet.db -c 10001 -a 10002 -l 10003
+
+
+[Install]
+WantedBy=multi-user.target
