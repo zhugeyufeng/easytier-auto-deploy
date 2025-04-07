@@ -90,9 +90,34 @@ detect_arch_and_version() {
     
     # 获取最新版本号
     log_info "获取最新版本信息..."
-    LATEST_VERSION=$(curl -s https://api.github.com/repos/EasyTier/EasyTier/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
     
-    if [ -z "$LATEST_VERSION" ]; then
+    # 使用临时文件存储API响应
+    API_RESPONSE_FILE=$(mktemp)
+    
+    if command -v curl &> /dev/null; then
+        curl -s -o "$API_RESPONSE_FILE" https://api.github.com/repos/EasyTier/EasyTier/releases/latest
+    elif command -v wget &> /dev/null; then
+        wget -q -O "$API_RESPONSE_FILE" https://api.github.com/repos/EasyTier/EasyTier/releases/latest
+    else
+        log_error "无法获取版本信息，curl和wget均未安装"
+        rm -f "$API_RESPONSE_FILE"
+        exit 1
+    fi
+    
+    # 检查API响应是否包含404错误
+    if grep -q "404: Not Found" "$API_RESPONSE_FILE" || [ ! -s "$API_RESPONSE_FILE" ]; then
+        log_error "获取版本信息失败，API返回404错误或空响应"
+        rm -f "$API_RESPONSE_FILE"
+        exit 1
+    fi
+    
+    # 从API响应中提取版本号
+    LATEST_VERSION=$(grep -oP '"tag_name": "\K(.*)(?=")' "$API_RESPONSE_FILE")
+    
+    # 清理临时文件
+    rm -f "$API_RESPONSE_FILE"
+    
+    if [ -z "$LATEST_VERSION" ];then
         log_error "无法获取最新版本信息"
         exit 1
     fi
@@ -121,16 +146,24 @@ download_package() {
     # 下载对应架构的包
     log_info "正在下载 $PACKAGE_NAME..."
     
+    # 检查URL是否可访问
     if command -v curl &> /dev/null; then
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}")
+        if [ "$HTTP_CODE" = "404" ]; then
+            log_error "下载URL返回404错误，文件可能不存在: ${GITHUB_RELEASE_URL}/${PACKAGE_NAME}"
+            exit 1
+        fi
+        
         if curl -L "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -o "${PACKAGE_NAME}"; then
             log_success "下载包成功"
         else
             log_error "curl下载包失败，尝试使用wget..."
             if command -v wget &> /dev/null; then
-                if wget "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"; then
+                if wget --spider "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" 2>/dev/null; then
+                    wget "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"
                     log_success "下载包成功"
                 else
-                    log_error "下载包失败，请检查网络连接和下载链接"
+                    log_error "下载包失败，URL不可访问"
                     exit 1
                 fi
             else
@@ -139,10 +172,15 @@ download_package() {
             fi
         fi
     elif command -v wget &> /dev/null; then
-        if wget "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"; then
-            log_success "下载包成功"
+        if wget --spider "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" 2>/dev/null; then
+            if wget "${GITHUB_RELEASE_URL}/${PACKAGE_NAME}" -O "${PACKAGE_NAME}"; then
+                log_success "下载包成功"
+            else
+                log_error "下载包失败，请检查网络连接"
+                exit 1
+            fi
         else
-            log_error "下载包失败，请检查网络连接和下载链接"
+            log_error "下载URL不可访问: ${GITHUB_RELEASE_URL}/${PACKAGE_NAME}"
             exit 1
         fi
     else
@@ -155,17 +193,28 @@ download_package() {
     SERVICE_URL="https://raw.githubusercontent.com/zhugeyufeng/easytier-auto-deploy/main/resource/easytier.service"
     
     if command -v curl &> /dev/null; then
-        if curl -L "${SERVICE_URL}" -o "easytier.service"; then
-            log_success "下载服务文件成功"
-        else
-            log_error "下载服务文件失败，创建默认服务文件"
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${SERVICE_URL}")
+        if [ "$HTTP_CODE" = "404" ]; then
+            log_warning "服务文件URL返回404错误，创建默认服务文件"
             create_default_service_file
+        else
+            if curl -L "${SERVICE_URL}" -o "easytier.service"; then
+                log_success "下载服务文件成功"
+            else
+                log_error "下载服务文件失败，创建默认服务文件"
+                create_default_service_file
+            fi
         fi
     elif command -v wget &> /dev/null; then
-        if wget "${SERVICE_URL}" -O "easytier.service"; then
-            log_success "下载服务文件成功"
+        if wget --spider "${SERVICE_URL}" 2>/dev/null; then
+            if wget "${SERVICE_URL}" -O "easytier.service"; then
+                log_success "下载服务文件成功"
+            else
+                log_error "下载服务文件失败，创建默认服务文件"
+                create_default_service_file
+            fi
         else
-            log_error "下载服务文件失败，创建默认服务文件"
+            log_warning "服务文件URL不可访问，创建默认服务文件"
             create_default_service_file
         fi
     else
