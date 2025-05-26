@@ -42,30 +42,24 @@ check_root_permission() {
     info "权限检查通过"
 }
 
-# 获取最新版本信息
-get_latest_version() {
-    info "正在获取最新版本信息..."
-    
-    # 从 GitHub API 获取最新 release 信息
-    local api_url="https://api.github.com/repos/EasyTier/EasyTier/releases/latest"
-    local temp_file="/tmp/easytier_release_info.json"
-    
-    # 下载 release 信息
-    if ! wget -q -O "$temp_file" "$api_url"; then
-        error "无法获取版本信息，请检查网络连接"
+# 设置版本号
+set_version() {
+    if [ -n "$1" ]; then
+        # 用户指定了版本号
+        VERSION="$1"
+        # 去掉可能的 v 前缀
+        VERSION=$(echo "$VERSION" | sed 's/^v//')
+        info "使用指定版本: v${VERSION}"
+    else
+        # 默认版本号
+        VERSION="2.3.0"
+        info "使用默认版本: v${VERSION}"
     fi
     
-    # 解析版本号 (去掉 v 前缀)
-    VERSION=$(grep '"tag_name"' "$temp_file" | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/' | sed 's/^v//')
-    
-    if [ -z "$VERSION" ]; then
-        error "无法解析版本号"
+    # 验证版本号格式 (简单的数字.数字.数字格式)
+    if ! echo "$VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' >/dev/null; then
+        error "无效的版本号格式: $VERSION，请使用类似 2.3.0 的格式"
     fi
-    
-    info "获取到最新版本: v${VERSION}"
-    
-    # 清理临时文件
-    rm -f "$temp_file"
 }
 
 # 检测系统平台架构并构建下载链接
@@ -258,11 +252,16 @@ main() {
     # 显示使用说明
     if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
         echo "EasyTier 自动更新脚本"
-        echo "从 GitHub 自动获取最新版本并下载对应平台的文件"
+        echo "下载指定版本的 EasyTier 并部署到系统"
         echo ""
         echo "使用方法:"
-        echo "  $0                    # 自动检测系统架构并下载最新版本"
-        echo "  $0 [platform]         # 手动指定平台架构并下载最新版本"
+        echo "  $0 [version] [platform]   # 指定版本和平台"
+        echo "  $0 [version]              # 指定版本，自动检测平台"
+        echo "  $0                        # 使用默认版本 (2.3.0)，自动检测平台"
+        echo ""
+        echo "参数说明:"
+        echo "  version    - 版本号 (如: 2.3.0, 1.2.5)"
+        echo "  platform   - 平台架构 (可选)"
         echo ""
         echo "支持的平台:"
         echo "  x86_64     - Intel/AMD 64位处理器"
@@ -272,9 +271,10 @@ main() {
         echo "  mips       - MIPS 处理器"
         echo ""
         echo "示例:"
-        echo "  $0             # 自动检测并下载最新版本"
-        echo "  $0 x86_64      # 下载最新版本的 x86_64 版本"
-        echo "  $0 aarch64     # 下载最新版本的 aarch64 版本"
+        echo "  $0                        # 使用默认版本 2.3.0，自动检测平台"
+        echo "  $0 2.3.0                  # 下载 2.3.0 版本，自动检测平台"
+        echo "  $0 2.3.0 x86_64           # 下载 2.3.0 版本的 x86_64 版本"
+        echo "  $0 1.2.5 aarch64          # 下载 1.2.5 版本的 aarch64 版本"
         echo ""
         echo "数据源: https://github.com/EasyTier/EasyTier/releases"
         exit 0
@@ -283,8 +283,21 @@ main() {
     # 首先检查权限
     check_root_permission
     
-    get_latest_version
-    detect_platform "$1"
+    # 设置版本号 (第一个参数)
+    set_version "$1"
+    
+    # 检测平台 (第二个参数，如果第一个参数是平台名则使用第一个参数)
+    if [ -n "$2" ]; then
+        # 有两个参数：版本号 + 平台
+        detect_platform "$2"
+    elif [ -n "$1" ] && [[ "$1" =~ ^(x86_64|aarch64|armv7|i386|mips)$ ]]; then
+        # 只有一个参数且是平台名：使用默认版本 + 指定平台
+        set_version ""  # 使用默认版本
+        detect_platform "$1"
+    else
+        # 自动检测平台
+        detect_platform ""
+    fi
     prepare_directory
     backup_existing_files
     download_easytier
