@@ -33,7 +33,7 @@ error() {
 
 # 获取最新版本号
 get_latest_version() {
-    info "正在获取最新版本号..."
+    info "正在获取最新版本号..." >&2
     
     # 尝试从 GitHub API 获取最新版本
     local latest_version
@@ -43,14 +43,14 @@ get_latest_version() {
         echo "$latest_version"
     else
         # 如果 API 获取失败，使用备用方法或默认版本
-        warn "无法从 API 获取最新版本，尝试备用方法..."
+        warn "无法从 API 获取最新版本，尝试备用方法..." >&2
         latest_version=$(curl -s "https://gh-proxy.com/github.com/EasyTier/EasyTier/releases/latest" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n1 | sed 's/^v//' | sed 's/\.zip$//')
         
         if [ -n "$latest_version" ] && echo "$latest_version" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' >/dev/null; then
             echo "$latest_version"
         else
             # 最后的备用版本
-            warn "无法获取最新版本，使用备用版本"
+            warn "无法获取最新版本，使用备用版本" >&2
             echo "2.3.0"
         fi
     fi
