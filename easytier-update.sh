@@ -31,6 +31,31 @@ error() {
     exit 1
 }
 
+# 获取最新版本号
+get_latest_version() {
+    info "正在获取最新版本号..."
+    
+    # 尝试从 GitHub API 获取最新版本
+    local latest_version
+    latest_version=$(curl -s "https://api.github.com/repos/EasyTier/EasyTier/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/^v//')
+    
+    if [ -n "$latest_version" ] && echo "$latest_version" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' >/dev/null; then
+        echo "$latest_version"
+    else
+        # 如果 API 获取失败，使用备用方法或默认版本
+        warn "无法从 API 获取最新版本，尝试备用方法..."
+        latest_version=$(curl -s "https://gh-proxy.com/github.com/EasyTier/EasyTier/releases/latest" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n1 | sed 's/^v//')
+        
+        if [ -n "$latest_version" ] && echo "$latest_version" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' >/dev/null; then
+            echo "$latest_version"
+        else
+            # 最后的备用版本
+            warn "无法获取最新版本，使用备用版本"
+            echo "2.3.0"
+        fi
+    fi
+}
+
 # 检查 root 权限
 check_root_permission() {
     info "检查系统权限"
@@ -51,9 +76,9 @@ set_version() {
         VERSION=$(echo "$VERSION" | sed 's/^v//')
         info "使用指定版本: v${VERSION}"
     else
-        # 默认版本号
-        VERSION="2.3.0"
-        info "使用默认版本: v${VERSION}"
+        # 获取最新版本号
+        VERSION=$(get_latest_version)
+        info "使用最新版本: v${VERSION}"
     fi
     
     # 验证版本号格式 (简单的数字.数字.数字格式)
@@ -257,7 +282,7 @@ main() {
         echo "使用方法:"
         echo "  $0 [version] [platform]   # 指定版本和平台"
         echo "  $0 [version]              # 指定版本，自动检测平台"
-        echo "  $0                        # 使用默认版本 (2.3.0)，自动检测平台"
+        echo "  $0                        # 获取最新版本，自动检测平台"
         echo ""
         echo "参数说明:"
         echo "  version    - 版本号 (如: 2.3.0, 1.2.5)"
@@ -271,7 +296,7 @@ main() {
         echo "  mips       - MIPS 处理器"
         echo ""
         echo "示例:"
-        echo "  $0                        # 使用默认版本 2.3.0，自动检测平台"
+        echo "  $0                        # 获取最新版本并自动检测平台"
         echo "  $0 2.3.0                  # 下载 2.3.0 版本，自动检测平台"
         echo "  $0 2.3.0 x86_64           # 下载 2.3.0 版本的 x86_64 版本"
         echo "  $0 1.2.5 aarch64          # 下载 1.2.5 版本的 aarch64 版本"
