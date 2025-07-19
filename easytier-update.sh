@@ -44,7 +44,7 @@ get_latest_version() {
     else
         # 如果 API 获取失败，使用备用方法或默认版本
         warn "无法从 API 获取最新版本，尝试备用方法..." >&2
-        latest_version=$(curl -s "https://gh-proxy.com/github.com/EasyTier/EasyTier/releases/latest" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n1 | sed 's/^v//' | sed 's/\.zip$//')
+        latest_version=$(curl -s "https://ghfast.yydy.link:2023/github.com/EasyTier/EasyTier/releases/latest" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n1 | sed 's/^v//' | sed 's/\.zip$//')
         
         if [ -n "$latest_version" ] && echo "$latest_version" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' >/dev/null; then
             echo "$latest_version"
@@ -140,7 +140,7 @@ build_download_url() {
     info "构建下载链接"
     
     # GitHub releases 下载链接格式
-    DOWNLOAD_URL="https://gh-proxy.com/github.com/EasyTier/EasyTier/releases/download/v${VERSION}/easytier-linux-${PLATFORM}-v${VERSION}.zip"
+    DOWNLOAD_URL="https://ghfast.yydy.link:2023/github.com/EasyTier/EasyTier/releases/download/v${VERSION}/easytier-linux-${PLATFORM}-v${VERSION}.zip"
     ZIP_FILE="easytier-linux-${PLATFORM}-v${VERSION}.zip"
     EXTRACT_DIR="easytier-linux-${PLATFORM}"
     
