@@ -258,15 +258,22 @@ show_completion() {
     echo ""
     info "工作目录: $WORK_DIR"
     
-    # 检查 systemd 服务
-    if [ -f "/etc/systemd/system/easytier-web.service" ]; then
+    # 检查 systemd 服务 (兼容 easytier.service 和 easytier-web.service)
+    local service_file=""
+    if [ -f "/etc/systemd/system/easytier.service" ]; then
+        service_file="/etc/systemd/system/easytier.service"
+    elif [ -f "/etc/systemd/system/easytier-web.service" ]; then
+        service_file="/etc/systemd/system/easytier-web.service"
+    fi
+
+    if [ -n "$service_file" ]; then
         echo ""
         info "检测到 systemd 服务配置:"
-        cat /etc/systemd/system/easytier-web.service
+        cat "$service_file"
         echo ""
         warn "如需重启服务，请运行:"
         echo "  systemctl daemon-reload"
-        echo "  systemctl restart easytier-web"
+        echo "  systemctl restart $(basename "$service_file" .service)"
     fi
 }
 
