@@ -148,7 +148,7 @@ download_package() {
     
     # 下载服务文件
     log_info "下载service文件..."
-    SERVICE_URL="https://ghfast.yydy.link:2023/https://raw.githubusercontent.com/zhugeyufeng/easytier-auto-deploy/main/easytier-cn.service"
+    SERVICE_URL="https://ghfast.yydy.link:2023/https://github.com/zhugeyufeng/easytier-auto-deploy/blob/main/resource/easytier-cn.service"
     
     # 直接尝试下载服务文件，不进行可访问性检查
     if command -v curl &> /dev/null; then
@@ -207,6 +207,8 @@ extract_package() {
         
         if unzip -o "/tmp/easytier-download/${PACKAGE_NAME}" -d /root/easytier; then
             log_success "解压成功"
+            log_info "解压的文件列表:"
+            ls -la /root/easytier
         else
             log_error "解压失败"
             exit 1
@@ -214,6 +216,8 @@ extract_package() {
     else
         if tar -xzf "/tmp/easytier-download/${PACKAGE_NAME}" -C /root/easytier; then
             log_success "解压成功"
+            log_info "解压的文件列表:"
+            ls -la /root/easytier
         else
             log_error "解压失败"
             exit 1
