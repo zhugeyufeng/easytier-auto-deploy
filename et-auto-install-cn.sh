@@ -89,8 +89,8 @@ detect_arch_and_version() {
     fi
     
     # 使用固定版本v2.2.4而不是获取最新版本
-    log_info "使用指定版本: v2.2.4..."
-    LATEST_VERSION="v2.2.4"
+    log_info "使用指定版本: v2.4.5..."
+    LATEST_VERSION="v2.4.5"
     
     log_success "版本: $LATEST_VERSION"
     
@@ -107,7 +107,7 @@ download_package() {
     log_info "开始从GitHub Releases拉取EasyTier软件包..."
     
     # GitHub Releases URL
-    GITHUB_RELEASE_URL="https://github.com/EasyTier/EasyTier/releases/download/${LATEST_VERSION}"
+    GITHUB_RELEASE_URL="https://ghfast.yydy.link:2023/https://github.com/EasyTier/EasyTier/releases/download/${LATEST_VERSION}"
     
     # 确保下载目录存在
     mkdir -p /tmp/easytier-download
@@ -148,7 +148,7 @@ download_package() {
     
     # 下载服务文件
     log_info "下载service文件..."
-    SERVICE_URL="https://raw.githubusercontent.com/zhugeyufeng/easytier-auto-deploy/main/easytier.service"
+    SERVICE_URL="https://ghfast.yydy.link:2023/https://raw.githubusercontent.com/zhugeyufeng/easytier-auto-deploy/main/easytier-cn.service"
     
     # 直接尝试下载服务文件，不进行可访问性检查
     if command -v curl &> /dev/null; then
