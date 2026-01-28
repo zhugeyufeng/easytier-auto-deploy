@@ -1,0 +1,13 @@
+[Unit]
+Description=EasyTier Service
+After=network.target syslog.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/root/easytier/easytier-core -w udp://et.meiyong.org:10001/knet
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
