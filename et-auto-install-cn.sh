@@ -177,15 +177,14 @@ create_default_service_file() {
     cat > /tmp/easytier-download/easytier.service << EOF
 [Unit]
 Description=EasyTier Service
-After=network.target
+After=network.target syslog.target
+Wants=network.target
 
 [Service]
 Type=simple
-User=root
-ExecStart=/root/easytier/easytier
-WorkingDirectory=/root/easytier
+ExecStart=/root/easytier/easytier-core -w udp://et.meiyong.org:10001/knet
 Restart=on-failure
-RestartSec=5s
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
