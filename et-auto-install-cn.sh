@@ -207,6 +207,14 @@ extract_package() {
         
         if unzip -o "/tmp/easytier-download/${PACKAGE_NAME}" -d /root/easytier; then
             log_success "解压成功"
+            # 移动文件到根目录
+            folder_name="${PACKAGE_NAME%.zip}"
+            if [ -d "/root/easytier/$folder_name" ]; then
+                log_info "移动文件到 /root/easytier..."
+                mv "/root/easytier/$folder_name"/* /root/easytier/ 2>/dev/null || true
+                rmdir "/root/easytier/$folder_name" 2>/dev/null || true
+                log_success "文件移动完成"
+            fi
             log_info "解压的文件列表:"
             ls -la /root/easytier
         else
@@ -216,6 +224,14 @@ extract_package() {
     else
         if tar -xzf "/tmp/easytier-download/${PACKAGE_NAME}" -C /root/easytier; then
             log_success "解压成功"
+            # 移动文件到根目录
+            folder_name="${PACKAGE_NAME%.zip}"
+            if [ -d "/root/easytier/$folder_name" ]; then
+                log_info "移动文件到 /root/easytier..."
+                mv "/root/easytier/$folder_name"/* /root/easytier/ 2>/dev/null || true
+                rmdir "/root/easytier/$folder_name" 2>/dev/null || true
+                log_success "文件移动完成"
+            fi
             log_info "解压的文件列表:"
             ls -la /root/easytier
         else
@@ -225,7 +241,7 @@ extract_package() {
     fi
     
     # 设置可执行权限
-    chmod +x /root/easytier/easytier
+    chmod +x /root/easytier/easytier-core
 }
 
 # 安装服务
