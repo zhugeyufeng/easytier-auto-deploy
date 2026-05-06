@@ -12,6 +12,7 @@ Font_suffix="\033[0m"
 # 配置变量
 WORK_DIR="/root/easytier"
 VERSION=""
+RELEASE_CHANNEL="stable"
 PLATFORM=""
 DOWNLOAD_URL=""
 ZIP_FILE=""
@@ -56,6 +57,68 @@ get_latest_version() {
     fi
 }
 
+# 获取最新 Pre-release 版本号
+get_latest_prerelease_version() {
+    info "正在获取最新 Pre-release 版本号..." >&2
+
+    local latest_version
+    latest_version=$(curl -s "https://api.github.com/repos/EasyTier/EasyTier/releases?per_page=30" | awk '
+        /"tag_name":/ {
+            tag=$0
+            sub(/^.*"tag_name": *"/, "", tag)
+            sub(/".*$/, "", tag)
+        }
+        /"prerelease": true/ && tag != "" {
+            print tag
+            exit
+        }
+    ' | sed 's/^v//')
+
+    if [ -n "$latest_version" ] && echo "$latest_version" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$' >/dev/null; then
+        echo "$latest_version"
+    else
+        warn "无法从 GitHub API 获取最新 Pre-release 版本，尝试备用方法..." >&2
+        latest_version=$(curl -s "https://ghfast.yydy.link:2023/github.com/EasyTier/EasyTier/releases" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+-[0-9A-Za-z][0-9A-Za-z.-]*' | head -n1 | sed 's/^v//')
+
+        if [ -n "$latest_version" ] && echo "$latest_version" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$' >/dev/null; then
+            echo "$latest_version"
+        else
+            error "无法获取最新 Pre-release 版本，请检查网络连接或手动指定版本号"
+        fi
+    fi
+}
+
+# 选择版本通道
+select_release_channel() {
+    if [ ! -t 0 ]; then
+        RELEASE_CHANNEL="stable"
+        info "未检测到交互式终端，默认使用稳定版本"
+        return
+    fi
+
+    echo ""
+    echo "请选择 EasyTier 版本类型:"
+    echo "  1) 稳定版本 (Stable)"
+    echo "  2) Pre-release 版本"
+
+    while true; do
+        read -r -p "请输入选项 [1-2] (默认: 1): " choice
+        case "$choice" in
+            ""|1)
+                RELEASE_CHANNEL="stable"
+                return
+                ;;
+            2)
+                RELEASE_CHANNEL="prerelease"
+                return
+                ;;
+            *)
+                warn "无效选项，请输入 1 或 2"
+                ;;
+        esac
+    done
+}
+
 # 检查 root 权限
 check_root_permission() {
     info "检查系统权限"
@@ -76,14 +139,19 @@ set_version() {
         VERSION=$(echo "$VERSION" | sed 's/^v//')
         info "使用指定版本: v${VERSION}"
     else
-        # 获取最新版本号
-        VERSION=$(get_latest_version)
-        info "使用最新版本: v${VERSION}"
+        select_release_channel
+        if [ "$RELEASE_CHANNEL" = "prerelease" ]; then
+            VERSION=$(get_latest_prerelease_version)
+            info "使用最新 Pre-release 版本: v${VERSION}"
+        else
+            VERSION=$(get_latest_version)
+            info "使用最新稳定版本: v${VERSION}"
+        fi
     fi
     
-    # 验证版本号格式 (简单的数字.数字.数字格式)
-    if ! echo "$VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' >/dev/null; then
-        error "无效的版本号格式: $VERSION，请使用类似 2.3.0 的格式"
+    # 验证版本号格式，允许 2.3.0 和 2.3.0-rc.1 这类版本
+    if ! echo "$VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$' >/dev/null; then
+        error "无效的版本号格式: $VERSION，请使用类似 2.3.0 或 2.3.0-rc.1 的格式"
     fi
 }
 
@@ -282,10 +350,10 @@ main() {
         echo "使用方法:"
         echo "  $0 [version] [platform]   # 指定版本和平台"
         echo "  $0 [version]              # 指定版本，自动检测平台"
-        echo "  $0                        # 获取最新版本，自动检测平台"
+        echo "  $0                        # 交互选择稳定版或 Pre-release，自动检测平台"
         echo ""
         echo "参数说明:"
-        echo "  version    - 版本号 (如: 2.3.0, 1.2.5)"
+        echo "  version    - 版本号 (如: 2.3.0, 1.2.5, 2.3.0-rc.1)"
         echo "  platform   - 平台架构 (可选)"
         echo ""
         echo "支持的平台:"
@@ -296,7 +364,7 @@ main() {
         echo "  mips       - MIPS 处理器"
         echo ""
         echo "示例:"
-        echo "  $0                        # 获取最新版本并自动检测平台"
+        echo "  $0                        # 交互选择稳定版或 Pre-release 并自动检测平台"
         echo "  $0 2.3.0                  # 下载 2.3.0 版本，自动检测平台"
         echo "  $0 2.3.0 x86_64           # 下载 2.3.0 版本的 x86_64 版本"
         echo "  $0 1.2.5 aarch64          # 下载 1.2.5 版本的 aarch64 版本"
