@@ -91,9 +91,7 @@ get_latest_prerelease_version() {
 # 选择版本通道
 select_release_channel() {
     if [ ! -t 0 ]; then
-        RELEASE_CHANNEL="stable"
-        info "未检测到交互式终端，默认使用稳定版本"
-        return
+        error "未检测到交互式终端，无法选择版本类型；请在交互式终端运行"
     fi
 
     echo ""
@@ -102,9 +100,9 @@ select_release_channel() {
     echo "  2) Pre-release 版本"
 
     while true; do
-        read -r -p "请输入选项 [1-2] (默认: 1): " choice
+        read -r -p "请输入选项 [1-2]: " choice
         case "$choice" in
-            ""|1)
+            1)
                 RELEASE_CHANNEL="stable"
                 return
                 ;;
@@ -132,21 +130,13 @@ check_root_permission() {
 
 # 设置版本号
 set_version() {
-    if [ -n "$1" ]; then
-        # 用户指定了版本号
-        VERSION="$1"
-        # 去掉可能的 v 前缀
-        VERSION=$(echo "$VERSION" | sed 's/^v//')
-        info "使用指定版本: v${VERSION}"
+    select_release_channel
+    if [ "$RELEASE_CHANNEL" = "prerelease" ]; then
+        VERSION=$(get_latest_prerelease_version)
+        info "使用最新 Pre-release 版本: v${VERSION}"
     else
-        select_release_channel
-        if [ "$RELEASE_CHANNEL" = "prerelease" ]; then
-            VERSION=$(get_latest_prerelease_version)
-            info "使用最新 Pre-release 版本: v${VERSION}"
-        else
-            VERSION=$(get_latest_version)
-            info "使用最新稳定版本: v${VERSION}"
-        fi
+        VERSION=$(get_latest_version)
+        info "使用最新稳定版本: v${VERSION}"
     fi
     
     # 验证版本号格式，允许 2.3.0 和 2.3.0-rc.1 这类版本
@@ -348,12 +338,10 @@ main() {
         echo "下载指定版本的 EasyTier 并部署到系统"
         echo ""
         echo "使用方法:"
-        echo "  $0 [version] [platform]   # 指定版本和平台"
-        echo "  $0 [version]              # 指定版本，自动检测平台"
-        echo "  $0                        # 交互选择稳定版或 Pre-release，自动检测平台"
+        echo "  $0 [platform]             # 手动选择稳定版或 Pre-release，指定平台"
+        echo "  $0                        # 手动选择稳定版或 Pre-release，自动检测平台"
         echo ""
         echo "参数说明:"
-        echo "  version    - 版本号 (如: 2.3.0, 1.2.5, 2.3.0-rc.1)"
         echo "  platform   - 平台架构 (可选)"
         echo ""
         echo "支持的平台:"
@@ -364,10 +352,9 @@ main() {
         echo "  mips       - MIPS 处理器"
         echo ""
         echo "示例:"
-        echo "  $0                        # 交互选择稳定版或 Pre-release 并自动检测平台"
-        echo "  $0 2.3.0                  # 下载 2.3.0 版本，自动检测平台"
-        echo "  $0 2.3.0 x86_64           # 下载 2.3.0 版本的 x86_64 版本"
-        echo "  $0 1.2.5 aarch64          # 下载 1.2.5 版本的 aarch64 版本"
+        echo "  $0                        # 手动选择稳定版或 Pre-release 并自动检测平台"
+        echo "  $0 x86_64                 # 手动选择版本类型，下载 x86_64 平台最新对应版本"
+        echo "  $0 aarch64                # 手动选择版本类型，下载 aarch64 平台最新对应版本"
         echo ""
         echo "数据源: https://github.com/EasyTier/EasyTier/releases"
         exit 0
@@ -376,16 +363,11 @@ main() {
     # 首先检查权限
     check_root_permission
     
-    # 设置版本号 (第一个参数)
-    set_version "$1"
+    # 手动选择版本类型，并获取对应最新版本号
+    set_version
     
-    # 检测平台 (第二个参数，如果第一个参数是平台名则使用第一个参数)
-    if [ -n "$2" ]; then
-        # 有两个参数：版本号 + 平台
-        detect_platform "$2"
-    elif [ -n "$1" ] && [[ "$1" =~ ^(x86_64|aarch64|armv7|i386|mips)$ ]]; then
-        # 只有一个参数且是平台名：使用默认版本 + 指定平台
-        set_version ""  # 使用默认版本
+    # 检测平台 (可选第一个参数)
+    if [ -n "$1" ]; then
         detect_platform "$1"
     else
         # 自动检测平台
