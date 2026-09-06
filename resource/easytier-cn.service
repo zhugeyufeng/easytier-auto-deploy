@@ -1,13 +1,15 @@
 [Unit]
-Description=EasyTier Service
 After=network.target syslog.target
-Wants=network.target
+Description=Easytier Service
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
+WorkingDirectory=/tmp
 ExecStart=/root/easytier/easytier-core -w udp://et.meiyong.org:10001/knet
-Restart=on-failure
-RestartSec=5
+Restart=always
+RestartSec=1
+LimitNOFILE=infinity
 
 [Install]
 WantedBy=multi-user.target
