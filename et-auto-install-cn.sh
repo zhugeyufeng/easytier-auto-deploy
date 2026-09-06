@@ -89,8 +89,8 @@ detect_arch_and_version() {
     fi
     
     # 使用固定版本v2.2.4而不是获取最新版本
-    log_info "使用指定版本: v2.4.5..."
-    LATEST_VERSION="v2.4.5"
+    log_info "使用指定版本: v2.6.4..."
+    LATEST_VERSION="v2.6.4"
     
     log_success "版本: $LATEST_VERSION"
     
@@ -176,15 +176,17 @@ create_default_service_file() {
     log_info "创建默认服务文件..."
     cat > /tmp/easytier-download/easytier.service << EOF
 [Unit]
-Description=EasyTier Service
 After=network.target syslog.target
-Wants=network.target
+Description=Easytier Service
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-ExecStart=/root/easytier/easytier-core -w udp://et.meiyong.org:10001/knet
-Restart=on-failure
-RestartSec=5
+WorkingDirectory=/tmp
+ExecStart=/root/easytier/easytier-core -w udp://et.meiyong.org:10001/knet 
+Restart=always
+RestartSec=1
+LimitNOFILE=infinity
 
 [Install]
 WantedBy=multi-user.target
